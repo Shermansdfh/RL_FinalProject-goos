@@ -448,7 +448,7 @@ def create_objective(sim, config: SplitterConfig, name_prefix: str = "obj_splitt
     power_up_raw = goos.abs(sim["overlap_up"]) ** 2
     power_down_raw = goos.abs(sim["overlap_down"]) ** 2
 
-    BASELINE_POWER = 1.1926  # from straight_waveguide_check.py
+    BASELINE_POWER = 1.010871  # from straight_waveguide_check.py
 
     power_up = named(power_up_raw / BASELINE_POWER, "power_up")
     power_down = named(power_down_raw / BASELINE_POWER, "power_down")
@@ -458,7 +458,7 @@ def create_objective(sim, config: SplitterConfig, name_prefix: str = "obj_splitt
     ratio_down = power_down / total_power
     target_ratio = goos.Constant(config.optimization.target_ratio)
     ratio_mse = (ratio_up - target_ratio) ** 2 + (ratio_down - (1 - target_ratio)) ** 2
-    power_penalty = config.optimization.power_loss_weight * (1 - total_power)
+    power_penalty = config.optimization.power_loss_weight * (1 - total_power) ** 2
 
     ratio_term = named(ratio_mse, "ratio_mse")
     penalty_term = named(power_penalty, "power_penalty")
