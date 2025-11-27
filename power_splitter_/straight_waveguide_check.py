@@ -64,7 +64,7 @@ def create_straight_simulation(
         sources=[
             maxwell.WaveguideModeSource(
                 center=[source_center_x(design_cfg, wg_cfg, sim_cfg), 0, 0],
-                extents=[0, wg_cfg.width * 6, design_cfg.thickness * 4],
+                extents=[0, wg_cfg.width * 3, design_cfg.thickness * 4],
                 normal=[1, 0, 0],
                 mode_num=0,
                 power=1,
@@ -90,7 +90,7 @@ def create_straight_simulation(
             maxwell.WaveguideModeOverlap(
                 name="straight_overlap",
                 center=[sim_cfg.monitor_position, 0, 0],
-                extents=[0, wg_cfg.width * 4, design_cfg.thickness * 4],
+                extents=[0, wg_cfg.width * 2, design_cfg.thickness * 4],
                 normal=[1, 0, 0],
                 mode_num=0,
                 power=1,

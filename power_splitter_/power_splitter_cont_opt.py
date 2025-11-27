@@ -392,7 +392,7 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
         sources=[
             maxwell.WaveguideModeSource(
                 center=[geom["source_x"], 0, 0],
-                extents=[0, wg.width * 6, design.thickness * 4],
+                extents=[0, wg.width * 3, design.thickness * 4],
                 normal=[1, 0, 0],
                 mode_num=0,
                 power=1,
@@ -420,7 +420,7 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
             maxwell.WaveguideModeOverlap(
                 name="overlap_up",
                 center=[sim_cfg.monitor_position, wg.offset, 0],
-                extents=[0, wg.width * 3, design.thickness * 2],
+                extents=[0, wg.width * 2, design.thickness * 2],
                 normal=[1, 0, 0],
                 mode_num=0,
                 power=1,
@@ -428,7 +428,7 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
             maxwell.WaveguideModeOverlap(
                 name="overlap_down",
                 center=[sim_cfg.monitor_position, -wg.offset, 0],
-                extents=[0, wg.width * 3, design.thickness * 2],
+                extents=[0, wg.width * 2, design.thickness * 2],
                 normal=[1, 0, 0],
                 mode_num=0,
                 power=1,
@@ -448,7 +448,7 @@ def create_objective(sim, config: SplitterConfig, name_prefix: str = "obj_splitt
     power_up_raw = goos.abs(sim["overlap_up"]) ** 2
     power_down_raw = goos.abs(sim["overlap_down"]) ** 2
 
-    BASELINE_POWER = 1.010871  # from straight_waveguide_check.py
+    BASELINE_POWER = 1.009828  # from straight_waveguide_check.py
 
     power_up = named(power_up_raw / BASELINE_POWER, "power_up")
     power_down = named(power_down_raw / BASELINE_POWER, "power_down")
