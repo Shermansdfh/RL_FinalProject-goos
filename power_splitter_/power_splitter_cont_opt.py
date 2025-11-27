@@ -39,8 +39,8 @@ class DesignConfig:
     width: float = 2000
     height: float = 2000
     thickness: float = 220
-    pixel_size: float = 40
-    resolution: float = 40
+    pixel_size: float = 100
+    resolution: float = 50
 
 
 @dataclasses.dataclass
