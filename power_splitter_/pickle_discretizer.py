@@ -30,6 +30,9 @@ except Exception:
 def find_eps_in_pickle(data):
     # Similar heuristic used elsewhere in this repo
     if isinstance(data, dict):
+        if "variable_data" in data and "design_var" in data["variable_data"]:
+             # Extract design variable directly if available (shape agnostic)
+             return data["variable_data"]["design_var"]["value"]
         if "monitor_data" in data and isinstance(data["monitor_data"], dict):
             md = data["monitor_data"]
             for k in md:
