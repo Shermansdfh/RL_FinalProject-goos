@@ -94,9 +94,9 @@ def geometry_summary(config: SplitterConfig) -> Dict[str, float]:
     waveguide = config.waveguide
     sim = config.simulation
 
-    input_start = -design.width / 2 - waveguide.input_length
-    input_center = input_start + waveguide.input_length / 2
-    source_x = input_start * sim.source_shift
+    input_start = -design.width / 2 - waveguide.input_length # -2500
+    input_center = input_start + waveguide.input_length / 2 # -1750
+    source_x = input_start * sim.source_shift # -2375
     design_bounds = (
         -design.width / 2,
         design.width / 2,
@@ -340,11 +340,11 @@ def create_design(config: SplitterConfig):
     )
 
     geom = geometry_summary(config)
-    input_center_x = geom["input_start"] + wg_cfg.input_length / 2
+    input_center_x = geom["input_start"] + wg_cfg.input_length / 2 # -2500 + 1500 / 2 = -1750
 
     wg_in = goos.Cuboid(
         pos=goos.Constant([input_center_x, 0, 0]),
-        extents=goos.Constant([wg_cfg.input_length, wg_cfg.width, design_cfg.thickness]),
+        extents=goos.Constant([wg_cfg.input_length, wg_cfg.width, design_cfg.thickness]), # 1500, 400, 220
         material=goos.material.Material(index=mat_cfg.core_index),
     )
 
@@ -621,22 +621,27 @@ def view(save_folder: str, step: int, config: SplitterConfig | None = None):
         if text_items:
             print(f"[Step {step}] Objective terms: {', '.join(text_items)}")
 
-    metric_labels = []
-    metric_values = []
-    if ratio_val is not None:
-        metric_labels.append("ratio_mse")
-        metric_values.append(ratio_val)
-    if penalty_val is not None:
-        metric_labels.append("power_penalty")
-        metric_values.append(penalty_val)
+    # Extract design variables if available
+    design_vals = None
+    if "variable_data" in data and "design_var" in data["variable_data"]:
+        design_vals = np.array(data["variable_data"]["design_var"]["value"])
 
-    cols = 3 if metric_labels else 2
+    design_plot = None
+    if design_vals is not None:
+        if design_vals.ndim == 3:
+            # Take z-slice at the middle
+            z_slice_idx = design_vals.shape[2] // 2
+            design_slice = design_vals[:, :, z_slice_idx]
+            design_plot = design_slice.T
+        elif design_vals.ndim == 2:
+            design_plot = design_vals.T
+
+    cols = 3
     fig, axes = plt.subplots(1, cols, figsize=(6 * cols, 6))
-    if cols == 1:
-        axes = [axes]
 
     ax_eps = axes[0]
-    ax_field = axes[1] if cols > 1 else axes[0]
+    ax_field = axes[1]
+    ax_design = axes[2]
 
     im1 = ax_eps.imshow(
         eps_plot, cmap="viridis", aspect="equal", extent=extent, origin="lower"
@@ -656,15 +661,18 @@ def view(save_folder: str, step: int, config: SplitterConfig | None = None):
     ax_field.grid(True, alpha=0.3, linestyle=":", linewidth=0.5)
     fig.colorbar(im2, ax=ax_field, label="|E|")
 
-    if metric_labels:
-        ax_metrics = axes[2]
-        colors = ["#74b9ff", "#fab1a0"]
-        ax_metrics.barh(metric_labels, metric_values, color=colors[: len(metric_values)])
-        ax_metrics.set_title("Objective Terms", fontsize=12, fontweight="bold")
-        ax_metrics.set_xlabel("Value")
-        ax_metrics.grid(True, axis="x", linestyle=":", alpha=0.3)
-    elif cols > 2:
-        axes[2].axis("off")
+    if design_plot is not None:
+        im3 = ax_design.imshow(
+            design_plot, cmap="Greys", aspect="equal", extent=extent, origin="lower", vmin=0, vmax=1
+        )
+        ax_design.set_title(f"Design Variables (Step {step})", fontsize=12, fontweight="bold")
+        ax_design.set_xlabel("x (μm)")
+        ax_design.set_ylabel("y (μm)")
+        ax_design.grid(True, alpha=0.3, linestyle=":", linewidth=0.5)
+        fig.colorbar(im3, ax=ax_design, label="Value")
+    else:
+        ax_design.text(0.5, 0.5, "No design data found", ha="center", va="center")
+        ax_design.axis("off")
 
     plt.tight_layout()
     plt.show()
