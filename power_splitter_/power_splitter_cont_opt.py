@@ -420,7 +420,7 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
             maxwell.WaveguideModeOverlap(
                 name="overlap_up",
                 center=[sim_cfg.monitor_position, wg.offset, 0],
-                extents=[0, wg.width, design.thickness * 2],
+                extents=[0, wg.width * 1.5, design.thickness * 2],
                 normal=[1, 0, 0],
                 mode_num=0,
                 power=1,
@@ -428,7 +428,7 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
             maxwell.WaveguideModeOverlap(
                 name="overlap_down",
                 center=[sim_cfg.monitor_position, -wg.offset, 0],
-                extents=[0, wg.width, design.thickness * 2],
+                extents=[0, wg.width * 1.5, design.thickness * 2],
                 normal=[1, 0, 0],
                 mode_num=0,
                 power=1,
