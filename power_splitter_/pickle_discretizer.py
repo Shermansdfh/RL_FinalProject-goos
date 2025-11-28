@@ -55,6 +55,7 @@ def main():
     parser.add_argument("--out-pkl", help="Path for discretized output pickle")
     parser.add_argument("--out-binary", help="Path for binary center TXT export")
     parser.add_argument("--threshold", type=float, help="Manual threshold (0-1). Default: auto-detected via k-means.")
+    parser.add_argument("--optimize-threshold", action="store_true", help="Run binary search to find optimal threshold using quick_sim_test.py")
     
     args = parser.parse_args()
 
@@ -65,26 +66,73 @@ def main():
     with open(args.pkl, "rb") as fp:
         data = pickle.load(fp)
 
-    # 2. Extract design variable (the 50x50 parameter array)
-    # This is typically in range [0, 1] for continuous optimization
+    # 2. Extract design variable
     design_vals = find_design_var_in_pickle(data)
-    
     print(f"Loaded design variable. Shape: {design_vals.shape}, Range: [{design_vals.min():.3f}, {design_vals.max():.3f}]")
 
     # 3. Determine Threshold
-    if args.threshold is not None:
-        thresh = args.threshold
-        val_low, val_high = 0.0, 1.0
-    else:
-        # Auto-detect levels (usually 0 and 1)
-        centers = kmeans2_1d(design_vals)
-        val_low, val_high = centers[0], centers[1]
-        thresh = 0.5 * (val_low + val_high)
-        print(f"Auto-detected levels: {val_low:.3f} / {val_high:.3f}. Threshold: {thresh:.3f}")
+    best_thresh = None
+    if args.optimize_threshold:
+        print("\n--- Optimizing Threshold ---")
+        from RL_FinalProject.envs.meep_simulation import WaveguideSimulation
 
-    # 4. Discretize
-    # For the variable_data structure, we want to preserve the optimized bounds [0, 1]
-    # usually, so we snap to 0 or 1 exactly.
+        def evaluate_threshold(thresh):
+            # Discretize
+            mask = (design_vals >= thresh).astype(int)
+            if mask.ndim == 3:
+                z_mid = mask.shape[2] // 2
+                matrix = mask[:, :, z_mid]
+            else:
+                matrix = mask
+            
+            # Run simulation
+            sim = WaveguideSimulation()
+            input_flux, out1, out2, _, _ = sim.calculate_flux(material_matrix=matrix)
+            
+            total_out = out1 + out2
+            if total_out < 1e-9: return float('inf')
+            
+            ratio1 = out1 / total_out
+            # Objective: maximize total transmission AND hit target ratio (0.6/0.4)
+            # Cost = (ratio - 0.6)^2 + weight * (1 - efficiency)^2
+            cost = (ratio1 - 0.6)**2 + 0.1 * (1 - total_out/input_flux)**2
+            print(f"Thresh: {thresh:.4f} | Ratio: {ratio1:.4f} | Eff: {total_out/input_flux:.4f} | Cost: {cost:.6f}")
+            return cost
+
+        # Coarse search
+        candidates = np.linspace(0.2, 0.8, 7)
+        best_cost = float('inf')
+        best_thresh = 0.5
+        
+        for th in candidates:
+            c = evaluate_threshold(th)
+            if c < best_cost:
+                best_cost = c
+                best_thresh = th
+        
+        # Fine search (binary-like refinement around best)
+        delta = 0.05
+        for _ in range(3):
+            low, high = max(0, best_thresh - delta), min(1, best_thresh + delta)
+            sub_candidates = np.linspace(low, high, 5)
+            for th in sub_candidates:
+                c = evaluate_threshold(th)
+                if c < best_cost:
+                    best_cost = c
+                    best_thresh = th
+            delta /= 2
+            
+        print(f"--- Optimal Threshold Found: {best_thresh:.4f} ---\n")
+        thresh = best_thresh
+    elif args.threshold is not None:
+        thresh = args.threshold
+    else:
+        # Auto-detect levels (k-means)
+        centers = kmeans2_1d(design_vals)
+        thresh = 0.5 * (centers[0] + centers[1])
+        print(f"Auto-detected threshold: {thresh:.3f}")
+
+    # 4. Discretize using final threshold
     binary_mask = (design_vals >= thresh).astype(int)
     
     # 5. Prepare Output Data Structure

@@ -73,7 +73,7 @@ class OptimizationConfig:
     max_iters: int = 100
     target_ratio: float = 0.65  # power in upper arm
     power_loss_weight: float = 0.1
-    sigmoid_factors: Tuple[int, ...] = (4, 8, 16, 24, 32)
+    sigmoid_factors: Tuple[int, ...] = (4, 8, 16, 24, 32, 48, 64, 96, 128)
 
 
 @dataclasses.dataclass
