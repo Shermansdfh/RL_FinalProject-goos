@@ -9,7 +9,7 @@ from spins import goos
 import power_splitter_cont_opt as opt_module
 
 # Load the pickle
-pkl_path = 'spins-b/power_splitter_/step6.pkl'  # or step160.pkl
+pkl_path = 'step22_discrete.pkl'  # or step160.pkl
 with open(pkl_path, 'rb') as f:
     data = pickle.load(f)
 
