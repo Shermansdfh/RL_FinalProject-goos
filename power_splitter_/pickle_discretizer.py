@@ -105,6 +105,10 @@ def main():
             # 1. Discretize
             mask = (design_vals >= thresh).astype(float) # 0.0 or 1.0
             
+            # FIX: Ensure mask is 3D (Nx, Ny, Nz)
+            if mask.ndim == 2:
+                mask = mask[:, :, np.newaxis]
+
             # 2. Create Shape
             # We need to wrap this numpy array into a goos.Shape
             # Use pixelated_cont_shape logic but with fixed array
@@ -114,7 +118,7 @@ def main():
             # We'll use the low-level constructor to be safe
             design_shape = opt_script.goos.PixelatedContShape(
                 array=var,
-                pixel_size=[config.design.pixel_size] * 3, # Approximation for 3D
+                pixel_size=[config.design.pixel_size, config.design.pixel_size, config.design.thickness], 
                 pos=goos.Constant([0, 0, 0]),
                 extents=[config.design.width, config.design.height, config.design.thickness],
                 material=goos.material.Material(index=config.material.background_index),
