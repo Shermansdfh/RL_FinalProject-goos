@@ -1,2 +1,4 @@
-- git clone https://github.com/Shermansdfh/RL_FinalProject-goos.git
-- pip install ./RL_FinalProject-goos
+```
+git clone https://github.com/Shermansdfh/RL_FinalProject-goos.git
+pip install ./RL_FinalProject-goos
+```
