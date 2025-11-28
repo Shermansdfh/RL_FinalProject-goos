@@ -24,12 +24,15 @@ docs/_build/
 
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
 
 *.m~
 
 .idea/
 *.o
-*.egg-info/**
+*.egg-info/
+.eggs/
 
 doc/_build/**
 _build/**
@@ -42,3 +45,21 @@ _build/**
 .coverage*
 
 .DS_Store
+
+# Simulation outputs and Checkpoints
+*.chkpt
+test_path/
+power_splitter_/cont_opt/
+power_splitter_/sanity_check_output/
+power_splitter_/straight_check/
+
+# Generated simulation artifacts
+step*.txt
+step*.pkl
+step*.png
+original.txt
+matrix_for_quick_simulation*.txt
+*.json
+!package.json
+!tsconfig.json
+# Re-include potential config jsons if they exist (none seen in list, but good practice)
