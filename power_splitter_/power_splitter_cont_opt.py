@@ -662,8 +662,15 @@ def view(save_folder: str, step: int, config: SplitterConfig | None = None):
     fig.colorbar(im2, ax=ax_field, label="|E|")
 
     if design_plot is not None:
+        # Use design region bounds for the design plot
+        design_extent = [
+            config.design.width * nm_to_um / -2,
+            config.design.width * nm_to_um / 2,
+            config.design.height * nm_to_um / -2,
+            config.design.height * nm_to_um / 2,
+        ]
         im3 = ax_design.imshow(
-            design_plot, cmap="Greys", aspect="equal", extent=extent, origin="lower", vmin=0, vmax=1
+            design_plot, cmap="Greys", aspect="equal", extent=design_extent, origin="lower", vmin=0, vmax=1
         )
         ax_design.set_title(f"Design Variables (Step {step})", fontsize=12, fontweight="bold")
         ax_design.set_xlabel("x (μm)")
