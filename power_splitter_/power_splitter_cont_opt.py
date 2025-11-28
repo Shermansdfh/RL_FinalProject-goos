@@ -565,7 +565,8 @@ def view(save_folder: str, step: int, config: SplitterConfig | None = None):
     if eps_raw is None or field_raw is None:
         raise KeyError("Could not find epsilon/field monitors in the selected step.")
 
-    eps = np.linalg.norm(eps_raw, axis=0)
+    # eps = np.linalg.norm(eps_raw, axis=0)
+    eps = np.real(eps_raw[2]) 
     field = np.linalg.norm(field_raw, axis=0)
     
     # Take z-slice at the middle
