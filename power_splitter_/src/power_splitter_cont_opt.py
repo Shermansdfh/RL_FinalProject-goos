@@ -545,7 +545,12 @@ def run(save_folder: str, config: SplitterConfig, visualize: bool = False, plot_
             goos.util.visualize_eps(sim_sig["eps"].get().array[2])
 
 
-def view(save_folder: str, step: int, config: SplitterConfig | None = None):
+def view(
+    save_folder: str,
+    step: int,
+    config: SplitterConfig | None = None,
+    components: bool = False,
+):
     if step is None:
         raise ValueError("Must specify --step when viewing results.")
 
@@ -566,7 +571,7 @@ def view(save_folder: str, step: int, config: SplitterConfig | None = None):
         raise KeyError("Could not find epsilon/field monitors in the selected step.")
 
     # eps = np.linalg.norm(eps_raw, axis=0)
-    eps = np.real(eps_raw[2]) 
+    eps = np.real(eps_raw[2])
     field = np.linalg.norm(field_raw, axis=0)
     
     # Take z-slice at the middle
@@ -690,6 +695,51 @@ def view(save_folder: str, step: int, config: SplitterConfig | None = None):
         plt.savefig(save_path, dpi=150, bbox_inches="tight")
         print(f"Saved visualization to: {save_path}")
 
+    # Optional: plot individual field components (Ey, Ez) to inspect quasi-TE / TM.
+    if components:
+        # field_raw is expected to have shape (3, Nx, Ny, Nz) for (Ex, Ey, Ez).
+        Ex = field_raw[0]
+        Ey = field_raw[1]
+        Ez = field_raw[2]
+
+        Ey_slice = np.abs(Ey[:, :, z_slice_idx]) ** 2
+        Ez_slice = np.abs(Ez[:, :, z_slice_idx]) ** 2
+
+        Ey_plot = Ey_slice.T
+        Ez_plot = Ez_slice.T
+
+        fig_comp, axes_comp = plt.subplots(1, 2, figsize=(12, 5))
+
+        im_ey = axes_comp[0].imshow(
+            Ey_plot, cmap="plasma", aspect="equal", extent=extent, origin="lower"
+        )
+        axes_comp[0].set_title(
+            f"|Ey|^2 (Step {step})", fontsize=12, fontweight="bold"
+        )
+        axes_comp[0].set_xlabel("x (μm)")
+        axes_comp[0].set_ylabel("y (μm)")
+        axes_comp[0].grid(True, alpha=0.3, linestyle=":", linewidth=0.5)
+        fig_comp.colorbar(im_ey, ax=axes_comp[0], label="|Ey|^2")
+
+        im_ez = axes_comp[1].imshow(
+            Ez_plot, cmap="plasma", aspect="equal", extent=extent, origin="lower"
+        )
+        axes_comp[1].set_title(
+            f"|Ez|^2 (Step {step})", fontsize=12, fontweight="bold"
+        )
+        axes_comp[1].set_xlabel("x (μm)")
+        axes_comp[1].set_ylabel("y (μm)")
+        axes_comp[1].grid(True, alpha=0.3, linestyle=":", linewidth=0.5)
+        fig_comp.colorbar(im_ez, ax=axes_comp[1], label="|Ez|^2")
+
+        plt.tight_layout()
+        plt.show()
+
+        if save_folder:
+            comp_path = os.path.join(save_folder, f"step{step}_components.png")
+            fig_comp.savefig(comp_path, dpi=150, bbox_inches="tight")
+            print(f"Saved field components visualization to: {comp_path}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="60/40 power splitter optimizer.")
@@ -697,7 +747,11 @@ def main():
     parser.add_argument("save_folder")
     parser.add_argument("--step", type=int, help="Checkpoint step for view.")
     parser.add_argument("--visualize", action="store_true", help="Render permittivity.")
-    parser.add_argument("--plot-geometry", action="store_true", help="Plot geometry sanity check before optimization.")
+    parser.add_argument(
+        "--plot-geometry",
+        action="store_true",
+        help="Plot geometry sanity check before optimization.",
+    )
     parser.add_argument(
         "--target-ratio",
         type=float,
@@ -710,15 +764,30 @@ def main():
         help="Optional JSON/YAML config overrides (nested keys match dataclass structure).",
         default=None,
     )
+    parser.add_argument(
+        "--components",
+        action="store_true",
+        help="In view mode, also plot Ey/Ez components to inspect quasi-TE/TM.",
+    )
 
     args = parser.parse_args()
     save_folder = resolve_save_folder(args.save_folder, args.action)
     config = build_config_from_file(args.config, args.target_ratio, args.max_iters)
 
     if args.action == "run":
-        run(save_folder, config, visualize=args.visualize, plot_geometry=args.plot_geometry)
+        run(
+            save_folder,
+            config,
+            visualize=args.visualize,
+            plot_geometry=args.plot_geometry,
+        )
     elif args.action == "view":
-        view(save_folder, args.step, config if args.config else None)
+        view(
+            save_folder,
+            args.step,
+            config if args.config else None,
+            components=args.components,
+        )
 
 
 if __name__ == "__main__":
