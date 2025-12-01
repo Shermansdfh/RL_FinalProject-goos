@@ -22,6 +22,7 @@ import json
 import os
 import pickle
 from datetime import datetime
+from tkinter import BASELINE
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
@@ -394,7 +395,7 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
                 center=[geom["source_x"], 0, 0],
                 extents=[0, wg.width * 3, design.thickness * 4],
                 normal=[1, 0, 0],
-                mode_num=0,
+                mode_num=1,
                 power=1,
             )
         ],
@@ -422,7 +423,7 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
                 center=[sim_cfg.monitor_position, wg.offset, 0],
                 extents=[0, wg.width * 1.5, design.thickness * 2],
                 normal=[1, 0, 0],
-                mode_num=0,
+                mode_num=1,
                 power=1,
             ),
             maxwell.WaveguideModeOverlap(
@@ -430,7 +431,7 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
                 center=[sim_cfg.monitor_position, -wg.offset, 0],
                 extents=[0, wg.width * 1.5, design.thickness * 2],
                 normal=[1, 0, 0],
-                mode_num=0,
+                mode_num=1,
                 power=1,
             ),
         ],
@@ -448,7 +449,8 @@ def create_objective(sim, config: SplitterConfig, name_prefix: str = "obj_splitt
     power_up_raw = goos.abs(sim["overlap_up"]) ** 2
     power_down_raw = goos.abs(sim["overlap_down"]) ** 2
 
-    BASELINE_POWER = 1.009828  # from straight_waveguide_check.py
+    # BASELINE_POWER = 1.009828  # from straight_waveguide_check.py
+    BASELINE_POWER = 1.000000
 
     power_up = named(power_up_raw / BASELINE_POWER, "power_up")
     power_down = named(power_down_raw / BASELINE_POWER, "power_down")
