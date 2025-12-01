@@ -260,7 +260,9 @@ def main():
     else:
         txt_arr = binary_mask.T
 
-    np.savetxt(out_txt_path, txt_arr, fmt="%d")
+    txt_arr_to_save = np.flipud(txt_arr)
+
+    np.savetxt(out_txt_path, txt_arr_to_save, fmt="%d")
     print(f"Saved binary mask text to:   {out_txt_path}")
 
 if __name__ == "__main__":
