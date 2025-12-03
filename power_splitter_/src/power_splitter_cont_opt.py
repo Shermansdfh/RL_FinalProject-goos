@@ -6,7 +6,7 @@ and 40% into the lower arm.
 
 Usage
 -----
-Run optimization:
+Run optimization (default 60/40 split, configurable via --target-ratio):
 
     $ python power_splitter_60_40.py run path/to/save_folder
 
@@ -55,8 +55,9 @@ class WaveguideConfig:
 
 @dataclasses.dataclass
 class MaterialConfig:
-    background_index: float = 1.45
-    core_index: float = 3.45
+    air_index: float = 1.0       # background index outside the design region
+    background_index: float = 1.45  # index used for value 0 inside the design (e.g., silica)
+    core_index: float = 3.45        # index used for value 1 inside the design (e.g., silicon)
 
 
 @dataclasses.dataclass
@@ -72,7 +73,7 @@ class SimulationConfig:
 @dataclasses.dataclass
 class OptimizationConfig:
     max_iters: int = 100
-    target_ratio: float = 0.65  # power in upper arm
+    target_ratio: float = 0.6  # default: 60% power in upper arm (60/40 splitter)
     power_loss_weight: float = 0.1
     sigmoid_factors: Tuple[int, ...] = (4, 8, 16, 24, 32, 48, 64, 96, 128)
 
@@ -291,10 +292,12 @@ def _merge_dataclass(instance: Any, updates: Dict[str, Any]):
             setattr(instance, field.name, override)
 
 
-def build_config_from_file(path: str | None, target_ratio: float, max_iters: int) -> SplitterConfig:
+def build_config_from_file(path: str | None, target_ratio: float | None, max_iters: int) -> SplitterConfig:
     """Create SplitterConfig optionally overriding from a structured file."""
     config = SplitterConfig()
-    config.optimization.target_ratio = target_ratio
+    # Only override the default target_ratio when an explicit value is provided.
+    if target_ratio is not None:
+        config.optimization.target_ratio = target_ratio
     config.optimization.max_iters = max_iters
     if path:
         overrides = _load_dict_from_path(path)
@@ -414,7 +417,9 @@ def create_simulation(eps: goos.Shape, config: SplitterConfig, name: str = "sim_
                 0,
             ],
         ),
-        background=goos.material.Material(index=mat_cfg.background_index),
+        # Use air as the simulation background; the design region still maps
+        # value 0 → background_index (silica) and 1 → core_index (silicon).
+        background=goos.material.Material(index=mat_cfg.air_index),
         outputs=[
             maxwell.Epsilon(name="eps"),
             maxwell.ElectricField(name="field"),
@@ -757,8 +762,8 @@ def main():
     parser.add_argument(
         "--target-ratio",
         type=float,
-        default=0.6,
-        help="Desired power ratio for the upper arm.",
+        default=None,
+        help="Desired power ratio for the upper arm; defaults to OptimizationConfig.target_ratio (60/40).",
     )
     parser.add_argument("--max-iters", type=int, default=60)
     parser.add_argument(
