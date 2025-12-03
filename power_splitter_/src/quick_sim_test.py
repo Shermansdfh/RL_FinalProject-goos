@@ -6,6 +6,10 @@ from typing import Tuple
 
 import numpy as np
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 sys.path.append("spins-b")
 sys.path.append("spins-b/power_splitter_")
 
@@ -68,6 +72,9 @@ def main():
         help="Specify whether the checkpoint is from the continuous or sigmoid phase. Default: auto-detect.",
     )
     parser.add_argument("--save-path", default=".", help="Temporary GOOS plan save folder.")
+    
+    parser.add_argument("--no-show", action="store_true", help="Do not call plt.show(), only print powers.")
+    parser.add_argument("--fig-prefix", default="quick_sim", help="Prefix for saved figures (PNG).")
     args = parser.parse_args()
 
     if not os.path.isfile(args.pkl):
@@ -98,11 +105,14 @@ def main():
         override_map = {var: (flows.NumericFlow(design_vals), context)}
 
         flow_results = graph_executor.eval_fun(
-            [sim["overlap_up"], sim["overlap_down"]], override_map
+            [sim["overlap_up"], sim["overlap_down"], sim["eps"], sim["field"]],
+            override_map,
         )
 
         overlap_up = flow_results[0].array
         overlap_down = flow_results[1].array
+        eps_raw = flow_results[2].array
+        field_raw = flow_results[3].array
 
         power_up = np.abs(overlap_up) ** 2
         power_down = np.abs(overlap_down) ** 2
@@ -112,6 +122,65 @@ def main():
         print(f"Power Down: {power_down:.6f}")
         print(f"Total     : {total:.6f}")
 
+        # ================================================
+        eps = np.real(eps_raw[2])
+        field_mag = np.linalg.norm(field_raw, axis=0)
+
+        z_slice_idx = eps.shape[2] // 2
+        eps_slice = eps[:, :, z_slice_idx]
+        field_slice = field_mag[:, :, z_slice_idx]
+
+        eps_plot = eps_slice.T
+        field_plot = field_slice.T
+
+        nm_to_um = 1.0 / 1000.0
+        x_extent = config.simulation.region * nm_to_um
+        y_extent = config.simulation.region * nm_to_um
+        extent = [-x_extent / 2, x_extent / 2, -y_extent / 2, y_extent / 2]
+
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+        ax_eps = axes[0]
+        ax_field = axes[1]
+
+        im1 = ax_eps.imshow(
+            eps_plot,
+            cmap="viridis",
+            aspect="equal",
+            extent=extent,
+            origin="lower",
+        )
+        ax_eps.set_title("Permittivity (ε)", fontsize=12, fontweight="bold")
+        ax_eps.set_xlabel("x (μm)")
+        ax_eps.set_ylabel("y (μm)")
+        ax_eps.grid(True, alpha=0.3, linestyle=":", linewidth=0.5)
+        fig.colorbar(im1, ax=ax_eps, label="|ε|")
+
+        im2 = ax_field.imshow(
+            field_plot,
+            cmap="hot",
+            aspect="equal",
+            extent=extent,
+            origin="lower",
+        )
+        ax_field.set_title("|E| Field Magnitude", fontsize=12, fontweight="bold")
+        ax_field.set_xlabel("x (μm)")
+        ax_field.set_ylabel("y (μm)")
+        ax_field.grid(True, alpha=0.3, linestyle=":", linewidth=0.5)
+        fig.colorbar(im2, ax=ax_field, label="|E|")
+
+        plt.tight_layout()
+
+        base = os.path.splitext(os.path.basename(args.pkl))[0]
+        fig_name = f"{args.fig_prefix}_{base}.png"
+        out_path = os.path.join(args.save_path, fig_name)
+        plt.savefig(out_path, dpi=150, bbox_inches="tight")
+        print(f"Saved permittivity/field figure to: {out_path}")
+
+        if not args.no_show:
+            plt.show()
+
+        # ================================================
 
 if __name__ == "__main__":
     main()
